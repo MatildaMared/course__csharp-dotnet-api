@@ -1,3 +1,5 @@
+using Microsoft.AspNetCore.Mvc;
+
 var builder = WebApplication.CreateBuilder(args);
 
 var employees = new List<Employee> {
@@ -12,6 +14,8 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 
+var employeeRoute = app.MapGroup("/employees");
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -21,12 +25,12 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.MapGet("/employees", () =>
+employeeRoute.MapGet(string.Empty, () =>
 {
     return Results.Ok(employees);
 });
 
-app.MapGet("/employees/{id}", (int id) =>
+employeeRoute.MapGet("{id}", (int id) =>
 {
     var employee = employees.FirstOrDefault(e => e.Id == id);
     if (employee == null)
@@ -36,6 +40,14 @@ app.MapGet("/employees/{id}", (int id) =>
 
 
     return Results.Ok(employee);
+});
+
+employeeRoute.MapPost(string.Empty, ([FromBody] Employee employee) =>
+{
+    employee.Id = employees.Max(e => e.Id) + 1;
+    employees.Add(employee);
+
+    return Results.Created($"/employees/{employee.Id}", employee);
 });
 
 app.Run();
