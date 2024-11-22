@@ -30,14 +30,13 @@ employeeRoute.MapGet(string.Empty, () =>
     return Results.Ok(employees);
 });
 
-employeeRoute.MapGet("{id}", (int id) =>
+employeeRoute.MapGet("{id}", (int id) => 
 {
     var employee = employees.FirstOrDefault(e => e.Id == id);
     if (employee == null)
     {
         return Results.NotFound();
     }
-
 
     return Results.Ok(employee);
 });
