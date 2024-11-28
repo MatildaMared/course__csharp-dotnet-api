@@ -1,16 +1,20 @@
+using System.ComponentModel.DataAnnotations;
+using Microsoft.AspNetCore.Mvc;
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
-builder.Services.AddSingleton<EmployeeRepository>();
+builder.Services.AddSingleton<IRepository<Employee>, EmployeeRepository>();
 builder.Services.AddProblemDetails();
 
 var app = builder.Build();
 
 var employeeRoute = app.MapGroup("/employees");
 
-employeeRoute.MapGet(string.Empty, (EmployeeRepository repository) =>
+
+employeeRoute.MapGet(string.Empty, (IRepository<Employee> repository) =>
 {
     return Results.Ok(repository.GetAll().Select(employee => new GetEmployeeResponse
     {
@@ -26,7 +30,7 @@ employeeRoute.MapGet(string.Empty, (EmployeeRepository repository) =>
     }));
 });
 
-employeeRoute.MapGet("{id:int}", (int id, EmployeeRepository repository) =>
+employeeRoute.MapGet("{id:int}", (int id, IRepository<Employee> repository) =>
 {
     var employee = repository.GetById(id);
     if (employee == null)
@@ -48,13 +52,20 @@ employeeRoute.MapGet("{id:int}", (int id, EmployeeRepository repository) =>
     });
 });
 
-employeeRoute.MapPost(string.Empty, (CreateEmployeeRequest employeeRequest, EmployeeRepository repository) =>
+employeeRoute.MapPost(string.Empty, (CreateEmployeeRequest employeeRequest, IRepository<Employee> repository) =>
 {
+    var validationProblems = new List<ValidationResult>();
+    var isValid = Validator.TryValidateObject(employeeRequest, new ValidationContext(employeeRequest), validationProblems, true);
+    if (!isValid)
+    {
+        return Results.BadRequest(validationProblems);
+    }
+
     var newEmployee = new Employee
     {
-        FirstName = employeeRequest.FirstName,
-        LastName = employeeRequest.LastName,
-        SocialSecurityNumber = employeeRequest.SocialSecurityNumber,
+        FirstName = employeeRequest.FirstName!,
+        LastName = employeeRequest.LastName!,
+        SocialSecurityNumber = employeeRequest.SocialSecurityNumber!,
         Address1 = employeeRequest.Address1,
         Address2 = employeeRequest.Address2,
         City = employeeRequest.City,
@@ -67,7 +78,7 @@ employeeRoute.MapPost(string.Empty, (CreateEmployeeRequest employeeRequest, Empl
     return Results.Created($"/employees/{newEmployee.Id}", employeeRequest);
 });
 
-employeeRoute.MapPut("{id}", (UpdateEmployeeRequest employeeRequest, int id, EmployeeRepository repository) =>
+employeeRoute.MapPut("{id}", (UpdateEmployeeRequest employeeRequest, int id, IRepository<Employee> repository) =>
 {
     var existingEmployee = repository.GetById(id);
     if (existingEmployee == null)

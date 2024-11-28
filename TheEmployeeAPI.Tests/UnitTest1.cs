@@ -1,6 +1,7 @@
 ﻿using System.Net;
 using System.Net.Http.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace TheEmployeeAPI.Tests;
 
@@ -11,6 +12,8 @@ public class BasicTests : IClassFixture<WebApplicationFactory<Program>>
     public BasicTests(WebApplicationFactory<Program> factory)
     {
         _factory = factory;
+        var repo = _factory.Services.GetRequiredService<IRepository<Employee>>();
+        repo.Create(new Employee { FirstName = "John", LastName = "Doe", SocialSecurityNumber = "123-45-6789" });
     }
 
     [Fact]
